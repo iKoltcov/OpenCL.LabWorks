@@ -12,6 +12,20 @@ typedef struct {
     char* Name;
 } Parameter;
 
+char* toString(cl_device_type deviceType){
+    switch (deviceType)
+    {
+        case 0 : return (char*)"CL_DEVICE_TYPE_DEFAULT";
+        case 1 : return (char*)"CL_DEVICE_TYPE_CPU";
+        case 2 : return (char*)"CL_DEVICE_TYPE_GPU";
+        case 3 : return (char*)"CL_DEVICE_TYPE_ACCELERATOR";
+        case 4 : return (char*)"CL_DEVICE_TYPE_CUSTOM";
+        case 0xFFFFFFFF : return (char*)"CL_DEVICE_TYPE_ALL";
+
+        default: return (char*)"Unexpected type";
+    }
+}
+
 int main(int argc, char** argv){
     cl_uint platformCount;
     cl_platform_id* platforms;
@@ -20,7 +34,7 @@ int main(int argc, char** argv){
     platforms = new cl_platform_id[platformCount];
     clGetPlatformIDs(platformCount, platforms, NULL);
 
-    char* charValue;
+    char* charValues;
     size_t valueSize;
 
     cl_uint intValue;
@@ -38,6 +52,7 @@ int main(int argc, char** argv){
         { CL_DEVICE_NAME, (char*)"CL_DEVICE_NAME" },
         { CL_DEVICE_VERSION, (char*)"CL_DEVICE_VERSION" },
         { CL_DEVICE_OPENCL_C_VERSION, (char*)"CL_DEVICE_OPENCL_C_VERSION" },
+        { CL_DEVICE_EXTENSIONS, (char*)"CL_DEVICE_EXTENSIONS" },
         { CL_DRIVER_VERSION, (char*)"CL_DRIVER_VERSION" }
     };
 
@@ -51,19 +66,17 @@ int main(int argc, char** argv){
         { CL_DEVICE_GLOBAL_MEM_SIZE, (char*)"CL_DEVICE_GLOBAL_MEM_SIZE" },
         { CL_DEVICE_LOCAL_MEM_SIZE, (char*)"CL_DEVICE_LOCAL_MEM_SIZE" },
         { CL_DEVICE_LOCAL_MEM_TYPE, (char*)"CL_DEVICE_LOCAL_MEM_TYPE" },
-        { CL_DEVICE_MAX_WORK_GROUP_SIZE, (char*)"CL_DEVICE_MAX_WORK_GROUP_SIZE" },
-        { CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, (char*)"CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS" },
-        { CL_DEVICE_MAX_WORK_ITEM_SIZES, (char*)"CL_DEVICE_MAX_WORK_ITEM_SIZES" },
+        { CL_DEVICE_MAX_WORK_GROUP_SIZE, (char*)"CL_DEVICE_MAX_WORK_GROUP_SIZE" }
     };
 
     for (int i = 0; i < platformCount; i++) {
         
         for(int j = 0; j < sizeof(platformParameters)/sizeof(*platformParameters); j++){
             clGetPlatformInfo(platforms[i], platformParameters[j].Id, 0, NULL, &valueSize);
-            charValue = new char[valueSize];
-            clGetPlatformInfo(platforms[i], platformParameters[j].Id, valueSize, charValue, NULL);
-            printf("%s: %s\n", platformParameters[j].Name, charValue );
-            free(charValue);
+            charValues = new char[valueSize];
+            clGetPlatformInfo(platforms[i], platformParameters[j].Id, valueSize, charValues, NULL);
+            printf("%s: %s\n", platformParameters[j].Name, charValues );
+            free(charValues);
         }
 
         cl_uint deviceCount;
@@ -75,10 +88,10 @@ int main(int argc, char** argv){
         for(int j = 0; j < deviceCount; j++){
             for(int k = 0; k < sizeof(deviceCharParameters)/sizeof(*deviceCharParameters); k++){
                 clGetDeviceInfo(devices[j], deviceCharParameters[k].Id, 0, NULL, &valueSize);
-                charValue = new char[valueSize];
-                clGetDeviceInfo(devices[j], deviceCharParameters[k].Id, valueSize, charValue, NULL);
-                printf(k != 0 ? "\t\t%s: %s\n" : "\t%s: %s\n", + deviceCharParameters[k].Name, charValue);
-                free(charValue);    
+                charValues = new char[valueSize];
+                clGetDeviceInfo(devices[j], deviceCharParameters[k].Id, valueSize, charValues, NULL);
+                printf(k != 0 ? "\t\t%s: %s\n" : "\t%s: %s\n", + deviceCharParameters[k].Name, charValues);
+                delete[] charValues;    
             }
             for(int k = 0; k < sizeof(deviceNumberParameters)/sizeof(*deviceNumberParameters); k++){
                 clGetDeviceInfo(devices[j], deviceNumberParameters[k].Id, sizeof(intValue), &intValue, NULL);
@@ -88,11 +101,26 @@ int main(int argc, char** argv){
                 clGetDeviceInfo(devices[j], deviceBoolParameters[k].Id, sizeof(boolValue), &boolValue, NULL);
                 printf("\t\t%s: %s\n", deviceBoolParameters[k].Name, boolValue ? (char*)"True" : (char*)"False");
             }      
+
+            cl_device_type deviceType;
+            clGetDeviceInfo(devices[j], CL_DEVICE_TYPE, sizeof(cl_device_type), &deviceType, NULL);
+            printf("\t\tCL_DEVICE_TYPE: %s\n", toString(deviceType));
+
+            clGetDeviceInfo(devices[j], CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(intValue), &intValue, NULL);
+            printf("\t\t%s: %d\n", "CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS", intValue);
+
+            size_t* sizeValues = new size_t[intValue];
+            clGetDeviceInfo(devices[j], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * intValue, sizeValues, NULL);
+            printf("\t\tCL_DEVICE_MAX_WORK_ITEM_SIZES: ");
+            for(int k = 0; k < intValue; k++){
+                printf(k + 1 == intValue ? "%lu \n" : "%lu / ", sizeValues[k]);           
+            }
+            delete[] sizeValues;
         }
 
-        free(devices);
+        delete[] devices;
     }
 
-    free(platforms);
+    delete[] platforms;
     return 0;
 }
