@@ -15,11 +15,11 @@ typedef struct {
 char* toString(cl_device_type deviceType){
     switch (deviceType)
     {
-        case 0 : return (char*)"CL_DEVICE_TYPE_DEFAULT";
-        case 1 : return (char*)"CL_DEVICE_TYPE_CPU";
-        case 2 : return (char*)"CL_DEVICE_TYPE_GPU";
-        case 3 : return (char*)"CL_DEVICE_TYPE_ACCELERATOR";
-        case 4 : return (char*)"CL_DEVICE_TYPE_CUSTOM";
+        case 1 : return (char*)"CL_DEVICE_TYPE_DEFAULT";
+        case 2 : return (char*)"CL_DEVICE_TYPE_CPU";
+        case 4 : return (char*)"CL_DEVICE_TYPE_GPU";
+        case 8 : return (char*)"CL_DEVICE_TYPE_ACCELERATOR";
+        case 16 : return (char*)"CL_DEVICE_TYPE_CUSTOM";
         case 0xFFFFFFFF : return (char*)"CL_DEVICE_TYPE_ALL";
 
         default: return (char*)"Unexpected type";
