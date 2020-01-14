@@ -3,16 +3,15 @@
 #include <cstring>
 #include <iostream>
 
+#define MAX_SOURCE_SIZE (0x100000)
+#include "define.h"
+
 #ifdef __APPLE__
 #define CL_SILENCE_DEPRECATION
 #include <OpenCL/opencl.h>
 #else
 #include <CL/opencl.h>
 #endif
-
-#define MAX_SOURCE_SIZE (0x100000)
-
-#include "define.h"
 
 void printMatrix(float* vector, int size, int rowSize){
     for(int i = 0; i < size; i++)
@@ -26,9 +25,9 @@ void printMatrix(float* vector, int size, int rowSize){
 }
 
 int main(void) {
-    int M = 32;
-    int N = 48;
-    int K = 32;
+    int M = 1024;
+    int N = 1024;
+    int K = 1024;
 
     int aSize = M * K;
     int bSize = K * N;
@@ -93,9 +92,11 @@ int main(void) {
     const size_t local[2] = { TS, TS };
     const size_t global[2] = { M, N };
     ret = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global, local, 0, NULL, NULL);
+    printf("error: %d\n", ret);
 
     float *C = (float*)malloc(sizeof(float) * cSize);
     ret = clEnqueueReadBuffer(command_queue, c_mem_obj, CL_TRUE, 0, cSize * sizeof(float), C, 0, NULL, NULL);
+    printf("error: %d\n", ret);
 
     //printMatrix(A, aSize, K);
     //printMatrix(B, bSize, N);
