@@ -56,3 +56,6 @@ bin/
 
 #vscode
 .vscode/
+
+# images
+*.ppm
