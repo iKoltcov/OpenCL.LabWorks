@@ -12,10 +12,12 @@
 
 #define MAX_SOURCE_SIZE (0x100000)
 
-void printMatrix(int* vector, int size, int rowSize){
+#include "define.h"
+
+void printMatrix(float* vector, int size, int rowSize){
     for(int i = 0; i < size; i++)
     {
-        printf("%d ", vector[i]);
+        printf("%f ", vector[i]);
         if((i + 1) % rowSize == 0){
             printf("\n");    
         }
@@ -24,23 +26,23 @@ void printMatrix(int* vector, int size, int rowSize){
 }
 
 int main(void) {
-    int M = 8;
-    int N = 6;
-    int K = 12;
+    int M = 32;
+    int N = 48;
+    int K = 32;
 
     int aSize = M * K;
     int bSize = K * N;
     int cSize = M * N;
 
-    int *A = (int*)malloc(sizeof(int) * aSize);
-    int *B = (int*)malloc(sizeof(int) * bSize);
+    float *A = (float*)malloc(sizeof(float) * aSize);
+    float *B = (float*)malloc(sizeof(float) * bSize);
 
     srand(time(NULL));
     for(int i = 0; i < aSize; i++){
-        A[i] = (rand() % 9) + 1;
+        A[i] = ((rand() % 9) + 1) + ((rand() % 10000) / 10000.0f);
     }
     for(int i = 0; i < bSize; i++){
-        B[i] = (rand() % 9) + 1;
+        B[i] = ((rand() % 9) + 1) + ((rand() % 10000) / 10000.0f);
     }
 
     FILE *fp;
@@ -62,21 +64,22 @@ int main(void) {
     cl_uint ret_num_platforms;
     cl_int ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
     ret = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_DEFAULT, 1, &device_id, &ret_num_devices);
-
+    
     cl_context context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
 
     cl_command_queue command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
 
-    cl_mem a_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY, aSize * sizeof(int), NULL, &ret);
-    cl_mem b_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY, bSize * sizeof(int), NULL, &ret);
-    cl_mem c_mem_obj = clCreateBuffer(context, CL_MEM_WRITE_ONLY, cSize * sizeof(int), NULL, &ret);
+    cl_mem a_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY, aSize * sizeof(float), NULL, &ret);
+    cl_mem b_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY, bSize * sizeof(float), NULL, &ret);
+    cl_mem c_mem_obj = clCreateBuffer(context, CL_MEM_WRITE_ONLY, cSize * sizeof(float), NULL, &ret);
 
-    ret = clEnqueueWriteBuffer(command_queue, a_mem_obj, CL_TRUE, 0, aSize * sizeof(int), A, 0, NULL, NULL);
-    ret = clEnqueueWriteBuffer(command_queue, b_mem_obj, CL_TRUE, 0, bSize * sizeof(int), B, 0, NULL, NULL);
-
+    ret = clEnqueueWriteBuffer(command_queue, a_mem_obj, CL_TRUE, 0, aSize * sizeof(float), A, 0, NULL, NULL);
+    ret = clEnqueueWriteBuffer(command_queue, b_mem_obj, CL_TRUE, 0, bSize * sizeof(float), B, 0, NULL, NULL);
+    
     cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t *)&source_size, &ret);
 
     ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
+    printf("error: %d\n", ret);
 
     cl_kernel kernel = clCreateKernel(program, "matrix_multiplication", &ret);
 
@@ -86,17 +89,16 @@ int main(void) {
     ret = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&a_mem_obj);
     ret = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&b_mem_obj);
     ret = clSetKernelArg(kernel, 5, sizeof(cl_mem), (void *)&c_mem_obj);
-    
-    const int TS = 32;
+
     const size_t local[2] = { TS, TS };
     const size_t global[2] = { M, N };
     ret = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global, local, 0, NULL, NULL);
 
-    int *C = (int*)malloc(sizeof(int) * cSize);
-    ret = clEnqueueReadBuffer(command_queue, c_mem_obj, CL_TRUE, 0, cSize * sizeof(int), C, 0, NULL, NULL);
+    float *C = (float*)malloc(sizeof(float) * cSize);
+    ret = clEnqueueReadBuffer(command_queue, c_mem_obj, CL_TRUE, 0, cSize * sizeof(float), C, 0, NULL, NULL);
 
-    printMatrix(A, aSize, K);
-    printMatrix(B, bSize, N);
+    //printMatrix(A, aSize, K);
+    //printMatrix(B, bSize, N);
     printMatrix(C, cSize, N);
 
     ret = clFlush(command_queue);
