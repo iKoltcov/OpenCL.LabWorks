@@ -12,8 +12,8 @@ all: main
 createDirs:
 	mkdir -p ./bin
 
-main: createDirs main.c
-	gcc -Wall -g main.c -o ./bin/main $(OPTIONS)
+main: createDirs
+	g++ -Wall -g main.cpp -o ./bin/main $(OPTIONS)
 
 clean:
 	rm -rf ./bin/
