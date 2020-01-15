@@ -1,6 +1,6 @@
-#define TS 64
-#define WIDTH 512
-#define HEIGHT 512
+#define TS 32
+#define WIDTH 1024
+#define HEIGHT 1024
 #define FIELD_OF_VIEW 1.57f
 
 
