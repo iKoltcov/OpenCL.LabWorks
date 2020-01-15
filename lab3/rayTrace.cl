@@ -2,7 +2,7 @@
 
 __kernel void rayTrace(const int raysLenght, const int spheresLenght, const int resultLenght,
                       const __global float* rays,
-                      const __global float8* spheres,
+                      const __global float* spheres,
                       __global float* result) {
     const int globalId = get_global_id(0);
     const int localId = get_local_id(0);
