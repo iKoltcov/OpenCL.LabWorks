@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <cstring>
 #include <iostream>
+#include <cmath>
 
 #define MAX_SOURCE_SIZE (0x100000)
 #include "define.h"
@@ -24,14 +25,34 @@ void printMatrix(float* vector, int size, int rowSize){
     printf("\n");
 }
 
-int main(void) {
-    int M = 1024;
-    int N = 1024;
-    int K = 1024;
+int checkMultiply(float* A, float* B, float *C, int M, int N, int K){
+    int errorsCount = 0;
 
-    int aSize = M * K;
-    int bSize = K * N;
-    int cSize = M * N;
+    for(int i = 0; i < M; i++){
+        for(int j = 0; j < M; j++){
+            float acc = 0.0f;
+
+            for (int k = 0; k < K; k++) {
+                acc += A[k * M + i] * B[j * K + k];
+            }
+        
+            if(abs(C[j*M + i] - acc) >= 1e-4){
+                errorsCount++;
+            }
+        }
+    }
+
+    return 0;
+}
+
+int main(void) {
+    const int M = 1024;
+    const int N = 1024;
+    const int K = 1024;
+
+    const int aSize = M * K;
+    const int bSize = K * N;
+    const int cSize = M * N;
 
     float *A = (float*)malloc(sizeof(float) * aSize);
     float *B = (float*)malloc(sizeof(float) * bSize);
@@ -78,7 +99,6 @@ int main(void) {
     cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t *)&source_size, &ret);
 
     ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
-    printf("error: %d\n", ret);
 
     cl_kernel kernel = clCreateKernel(program, "matrix_multiplication", &ret);
 
@@ -92,15 +112,13 @@ int main(void) {
     const size_t local[2] = { TS, TS };
     const size_t global[2] = { M, N };
     ret = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global, local, 0, NULL, NULL);
-    printf("error: %d\n", ret);
 
     float *C = (float*)malloc(sizeof(float) * cSize);
     ret = clEnqueueReadBuffer(command_queue, c_mem_obj, CL_TRUE, 0, cSize * sizeof(float), C, 0, NULL, NULL);
-    printf("error: %d\n", ret);
 
-    //printMatrix(A, aSize, K);
-    //printMatrix(B, bSize, N);
     printMatrix(C, cSize, N);
+    printf("Errors count: %d\n", checkMultiply(A, B, C, M, N, K));
+
 
     ret = clFlush(command_queue);
     ret = clFinish(command_queue);
@@ -111,6 +129,7 @@ int main(void) {
     ret = clReleaseMemObject(c_mem_obj);
     ret = clReleaseCommandQueue(command_queue);
     ret = clReleaseContext(context);
+
     free(A);
     free(B);
     free(C);
