@@ -92,8 +92,10 @@ int main(void) {
     cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t *)&source_size, &ret);
 
     ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
-    
+    printf("%d\n", ret);
+
     cl_kernel kernel = clCreateKernel(program, "rayTrace", &ret);
+    printf("%d\n", ret);
 
     ret = clSetKernelArg(kernel, 0, sizeof(int), (void *)&raysLenght);
     ret = clSetKernelArg(kernel, 1, sizeof(int), (void *)&spheresLenght);

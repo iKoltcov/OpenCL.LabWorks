@@ -2,9 +2,8 @@
 
 __kernel void rayTrace(const int raysLenght, const int spheresLenght, const int resultLenght,
                       const __global float* rays,
-                      const __global float* spheres,
+                      const __global float8* spheres,
                       __global float* result) {
-
     const int globalId = get_global_id(0);
     const int localId = get_local_id(0);
 
@@ -15,6 +14,10 @@ __kernel void rayTrace(const int raysLenght, const int spheresLenght, const int 
 
     float3 color = { 0.0f, 0.0f, 0.0f };
     int hits = 0;
+
+    float minDistance = FLT_MAX;
+    float3 colorOfNearSphere = { 0.0f, 0.0f, 0.0f };
+    bool hitExists = false;
 
     for(int i = 0; i < spheresLenght; i += sphereSize){
         float3 center = { spheres[i], spheres[i + 1], spheres[i + 2] };
@@ -30,7 +33,6 @@ __kernel void rayTrace(const int raysLenght, const int spheresLenght, const int 
             continue;
         }
 
-        float3 point;
         float sqrtedDiscriminant = sqrt(discriminant);
         float numerator = -b - sqrtedDiscriminant;        
         if(numerator <= 0.0f){
@@ -38,33 +40,46 @@ __kernel void rayTrace(const int raysLenght, const int spheresLenght, const int 
             if(numerator <= 0.0f){
                 continue;
             }
-            
-            point = origin + direction * (numerator / (2.0f * a));
-        }else{
-            point = origin + direction * (numerator / (2.0f * a));
+        }
+        float distance = (numerator / (2.0f * a));
+
+        if(distance >= minDistance){
+            continue;
         }
 
+        float3 point = origin + direction * distance;
         float3 N = normalize(point - center);
         float3 light = {0.0f, 10.0f, 0.0f};
         float3 toLight = normalize(light - point);
         float diffuseLightIntensity = max(0.0f, dot(toLight, N));
 
-        color.x += spheres[i + 4] * diffuseLightIntensity; 
-        color.y += spheres[i + 5] * diffuseLightIntensity; 
-        color.z += spheres[i + 6] * diffuseLightIntensity;
-        hits++;
-        break;
+        if(distance < minDistance){
+            hitExists = true;
+            minDistance = distance;
+
+            colorOfNearSphere.x = spheres[i + 4] * diffuseLightIntensity; 
+            colorOfNearSphere.y = spheres[i + 5] * diffuseLightIntensity; 
+            colorOfNearSphere.z = spheres[i + 6] * diffuseLightIntensity;
+        }
     }
-    
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    if(hitExists){
+        color.x += colorOfNearSphere.x; 
+        color.y += colorOfNearSphere.y; 
+        color.z += colorOfNearSphere.z;
+        hits++;
+    }
+
     barrier(CLK_LOCAL_MEM_FENCE);
     
-    const int pixel = globalId * resultSize;
-
     float k = 1.0f; 
     if(hits > 0){
         k /= (float) hits;
     }
 
+    const int pixel = globalId * resultSize;
     result[pixel    ] = color.x * k;
     result[pixel + 1] = color.y * k;
     result[pixel + 2] = color.z * k;
